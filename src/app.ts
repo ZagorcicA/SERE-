@@ -22,7 +22,6 @@ if (roomParam) {
 
 function startHostRole(): void {
   const engine = new GameEngine('host', 'Domaćin', 'loud');
-  let pendingPickupId: string | null = null;
   let stopLobby: (() => void) | null = null;
 
   app.innerHTML = '<div class="connecting"><p>Spajanje...</p></div>';
@@ -38,16 +37,6 @@ function startHostRole(): void {
   const actions: GameActions = {
     playCards: (cardIds, rank) => engine.playCards('host', cardIds, rank),
     callBluff: () => engine.callBluff('host'),
-    confirmPickup: () => {
-      if (pendingPickupId) engine.confirmPickup(pendingPickupId);
-    },
-    startNextRound: () => {
-      if (pendingPickupId) {
-        const id = pendingPickupId;
-        pendingPickupId = null;
-        engine.startNextRound(id);
-      }
-    },
   };
 
   engine.on(event => {
@@ -57,19 +46,20 @@ function startHostRole(): void {
         stopLobby?.();
         stopLobby = null;
         const clientState = redact(state, 'host');
-        renderNetworkedGame(app, clientState, actions, pendingPickupId ?? undefined);
+        renderNetworkedGame(app, clientState, actions);
       }
     } else if (event.type === 'reveal') {
-      pendingPickupId = event.pickupPlayerId;
       const isHostPickup = event.pickupPlayerId === 'host';
       showReveal({
         lastPlay: event.lastPlay,
         verdict: event.verdict,
         pickupPlayerId: event.pickupPlayerId,
         players: engine.getState().players,
-        myId: 'host',
         onDismiss: () => {
-          if (isHostPickup) engine.confirmPickup('host');
+          if (isHostPickup) {
+            engine.confirmPickup('host');
+            engine.startNextRound('host');
+          }
         },
       });
     } else if (event.type === 'error') {
@@ -82,7 +72,6 @@ function startHostRole(): void {
 }
 
 function startClientRole(roomId: string): void {
-  let pendingPickupId: string | null = null;
   let latestState: ClientGameState | null = null;
   let hasJoined = false;
 
@@ -93,11 +82,6 @@ function startClientRole(roomId: string): void {
   const actions: GameActions = {
     playCards: (cardIds, rank) => client.send({ type: 'PLAY_CARDS', cardIds, claimedRank: rank }),
     callBluff: () => client.send({ type: 'CALL_BLUFF' }),
-    confirmPickup: () => client.send({ type: 'CONFIRM_PICKUP' }),
-    startNextRound: () => {
-      client.send({ type: 'START_NEXT_ROUND' });
-      pendingPickupId = null;
-    },
   };
 
   client
@@ -109,11 +93,10 @@ function startClientRole(roomId: string): void {
       if (state.phase === 'lobby') {
         renderClientWaiting(app, state.players);
       } else {
-        renderNetworkedGame(app, state, actions, pendingPickupId ?? undefined);
+        renderNetworkedGame(app, state, actions);
       }
     })
     .onReveal(payload => {
-      pendingPickupId = payload.pickupPlayerId;
       if (latestState) {
         const isPickup = client.getMyId() === payload.pickupPlayerId;
         showReveal({
@@ -121,9 +104,11 @@ function startClientRole(roomId: string): void {
           verdict: payload.verdict,
           pickupPlayerId: payload.pickupPlayerId,
           players: latestState.players,
-          myId: client.getMyId() ?? '',
           onDismiss: () => {
-            if (isPickup) client.send({ type: 'CONFIRM_PICKUP' });
+            if (isPickup) {
+              client.send({ type: 'CONFIRM_PICKUP' });
+              client.send({ type: 'START_NEXT_ROUND' });
+            }
           },
         });
       }

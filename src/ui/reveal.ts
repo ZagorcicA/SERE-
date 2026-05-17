@@ -6,7 +6,6 @@ export interface RevealOptions {
   verdict: 'liar' | 'truth';
   pickupPlayerId: string;
   players: Player[];
-  myId: string;
   onDismiss: () => void;
 }
 
@@ -37,15 +36,14 @@ function buildCardEl(card: Card): HTMLElement {
     <span class="card-rank">${card.rank}</span>
     <span class="card-suit">${suitSymbol(card)}</span>
   `;
-  // Start face-down style; animateReveal will flip it
   el.classList.add('face-down');
   return el;
 }
 
 export function showReveal(options: RevealOptions): void {
-  const { lastPlay, verdict, pickupPlayerId, players, myId, onDismiss } = options;
+  const { lastPlay, verdict, pickupPlayerId, players, onDismiss } = options;
 
-  // Remove any stale reveal overlays from previous rounds before showing the new one
+  // Remove any stale overlays from previous rounds
   document.querySelectorAll('.reveal-overlay').forEach(el => el.remove());
 
   const overlay = document.createElement('div');
@@ -65,7 +63,7 @@ export function showReveal(options: RevealOptions): void {
   }
   inner.appendChild(cardsRow);
 
-  // Verdict text
+  // Verdict
   const verdictEl = document.createElement('div');
   verdictEl.className = 'reveal-verdict';
   const claimerName = playerName(players, lastPlay.playerId);
@@ -78,64 +76,29 @@ export function showReveal(options: RevealOptions): void {
   }
   inner.appendChild(verdictEl);
 
-  // Pickup text
+  // Pickup label
   const pickupName = playerName(players, pickupPlayerId);
   const pickupEl = document.createElement('p');
   pickupEl.className = 'reveal-pickup-text';
   pickupEl.textContent = `${pickupName} skuplja sve karte.`;
   inner.appendChild(pickupEl);
 
-  const dismiss = () => {
+  overlay.appendChild(inner);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  // Flip cards then auto-advance — no button needed
+  (async () => {
+    for (const el of cardEls) {
+      await new Promise<void>(r => setTimeout(r, 150));
+      el.classList.remove('face-down');
+      await animateReveal(el);
+    }
+    await new Promise<void>(r => setTimeout(r, 1500));
     overlay.classList.remove('visible');
     setTimeout(() => {
       overlay.remove();
       onDismiss();
     }, 200);
-  };
-
-  const amPickupPlayer = myId === pickupPlayerId;
-
-  if (amPickupPlayer) {
-    // Pickup player sees the action button
-    const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'reveal-confirm-btn';
-    confirmBtn.textContent = 'Skupi!';
-    confirmBtn.disabled = true; // Enable after animations finish
-    confirmBtn.addEventListener('click', dismiss);
-    inner.appendChild(confirmBtn);
-
-    overlay.appendChild(inner);
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('visible'));
-
-    (async () => {
-      for (const el of cardEls) {
-        await new Promise<void>(r => setTimeout(r, 150));
-        el.classList.remove('face-down');
-        await animateReveal(el);
-      }
-      confirmBtn.disabled = false;
-    })();
-  } else {
-    // Spectating player: auto-dismiss after animations so they don't get stuck
-    const waitEl = document.createElement('p');
-    waitEl.className = 'reveal-waiting-text';
-    waitEl.textContent = `Čekaj da ${pickupName} skupi karte...`;
-    inner.appendChild(waitEl);
-
-    overlay.appendChild(inner);
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('visible'));
-
-    (async () => {
-      for (const el of cardEls) {
-        await new Promise<void>(r => setTimeout(r, 150));
-        el.classList.remove('face-down');
-        await animateReveal(el);
-      }
-      // Auto-dismiss for the non-pickup player after a short pause
-      await new Promise<void>(r => setTimeout(r, 1500));
-      dismiss();
-    })();
-  }
+  })();
 }

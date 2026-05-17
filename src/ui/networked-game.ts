@@ -7,8 +7,6 @@ import { shake } from './animations.js';
 export interface GameActions {
   playCards(cardIds: string[], claimedRank: Rank): void;
   callBluff(): void;
-  confirmPickup(): void;
-  startNextRound(): void;
 }
 
 // ── Module-level selection state ───────────────────────────────────────────────
@@ -78,7 +76,6 @@ export function renderNetworkedGame(
   container: HTMLElement,
   state: ClientGameState,
   actions: GameActions,
-  pickupPlayerId?: string,
 ): void {
   const round = state.currentRound;
   const activeId = round?.activePlayerId ?? null;
@@ -114,44 +111,8 @@ export function renderNetworkedGame(
     return;
   }
 
-  // ── Pickup screen ───────────────────────────────────────────────────────────
-  if (state.phase === 'pickup') {
-    container.innerHTML = '';
-    const root = document.createElement('div');
-    root.className = 'game';
-
-    const pickupSection = document.createElement('div');
-    pickupSection.className = 'pickup-section';
-
-    const pickupLabel = document.createElement('p');
-    pickupLabel.className = 'pickup-label';
-
-    const amPickupPlayer = pickupPlayerId !== undefined && state.myId === pickupPlayerId;
-
-    if (amPickupPlayer) {
-      pickupLabel.textContent = 'Skupi karte i počni novu rundu.';
-      pickupSection.appendChild(pickupLabel);
-
-      const continueBtn = document.createElement('button');
-      continueBtn.className = 'btn-continue';
-      continueBtn.textContent = 'Nastavi';
-      continueBtn.addEventListener('click', () => {
-        actions.startNextRound();
-      });
-      pickupSection.appendChild(continueBtn);
-    } else {
-      const pickerName =
-        pickupPlayerId !== undefined
-          ? (state.players.find(p => p.id === pickupPlayerId)?.name ?? '...')
-          : '...';
-      pickupLabel.textContent = `Čekaj... ${pickerName} skuplja karte.`;
-      pickupSection.appendChild(pickupLabel);
-    }
-
-    root.appendChild(pickupSection);
-    container.appendChild(root);
-    return;
-  }
+  // ── Pickup phase: transient — skip re-render, 'playing' arrives momentarily ──
+  if (state.phase === 'pickup') return;
 
   // ── Normal game screen ──────────────────────────────────────────────────────
   container.innerHTML = '';
@@ -258,7 +219,7 @@ export function renderNetworkedGame(
           selectedIds.add(card.id);
         }
         // Re-render to update button states without full reset
-        renderNetworkedGame(container, state, actions, pickupPlayerId);
+        renderNetworkedGame(container, state, actions);
       });
     }
 

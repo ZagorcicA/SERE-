@@ -47,8 +47,6 @@ function showToast(message: string): void {
 export function renderGame(container: HTMLElement, engine: GameEngine): void {
   let selectedIds = new Set<string>();
   let lastActivePlayerId: string | null = null;
-  // Stored from the reveal event so pickup phase knows who picks up
-  let pendingPickupPlayerId: string | null = null;
 
   function render(state: GameState): void {
     const round = state.currentRound;
@@ -252,30 +250,6 @@ export function renderGame(container: HTMLElement, engine: GameEngine): void {
       root.appendChild(actions);
     }
 
-    // ── Pickup phase: show "Nastavi" button ───────────────────────────────────
-    if (state.phase === 'pickup' && pendingPickupPlayerId !== null) {
-      const startId = pendingPickupPlayerId;
-      const pickupSection = document.createElement('div');
-      pickupSection.className = 'pickup-section';
-
-      const pickupLabel = document.createElement('p');
-      pickupLabel.className = 'pickup-label';
-      const pickerName = state.players.find(p => p.id === startId)?.name ?? '?';
-      pickupLabel.textContent = `${pickerName} skuplja karte i otvara novu rundu.`;
-      pickupSection.appendChild(pickupLabel);
-
-      const continueBtn = document.createElement('button');
-      continueBtn.className = 'btn-continue';
-      continueBtn.textContent = 'Nastavi';
-      continueBtn.addEventListener('click', () => {
-        pendingPickupPlayerId = null;
-        engine.startNextRound(startId);
-      });
-      pickupSection.appendChild(continueBtn);
-
-      root.appendChild(pickupSection);
-    }
-
     container.appendChild(root);
   }
 
@@ -288,14 +262,15 @@ export function renderGame(container: HTMLElement, engine: GameEngine): void {
       render(event.state);
     } else if (event.type === 'reveal') {
       const state = engine.getState();
-      pendingPickupPlayerId = event.pickupPlayerId;
       showReveal({
         lastPlay: event.lastPlay,
         verdict: event.verdict,
         pickupPlayerId: event.pickupPlayerId,
         players: state.players,
-        myId: event.pickupPlayerId, // hotseat: pickup player is whoever holds the phone
-        onDismiss: () => engine.confirmPickup(event.pickupPlayerId),
+        onDismiss: () => {
+          engine.confirmPickup(event.pickupPlayerId);
+          engine.startNextRound(event.pickupPlayerId);
+        },
       });
     } else if (event.type === 'error') {
       showToast(event.message);
