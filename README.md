@@ -112,11 +112,3 @@ npm run build   # outputs to dist/
 
 ---
 
-## What's NOT in v1
-
-- Online matchmaking / public rooms
-- AI opponents
-- User accounts or session persistence
-- Voice/text chat
-- Custom card artwork (placeholders only)
-- Host migration if the host disconnects
