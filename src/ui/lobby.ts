@@ -175,10 +175,25 @@ export function renderHostLobby(
     copyBtn.className = 'copy-btn';
     copyBtn.textContent = 'Kopiraj';
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(joinUrl).then(() => {
+      const confirm = () => {
         copyBtn.textContent = '✓';
         setTimeout(() => { copyBtn.textContent = 'Kopiraj'; }, 1500);
-      });
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(joinUrl).then(confirm).catch(fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
+      function fallbackCopy() {
+        const ta = document.createElement('textarea');
+        ta.value = joinUrl;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        confirm();
+      }
     });
     urlRow.appendChild(copyBtn);
     qrSection.appendChild(urlRow);
