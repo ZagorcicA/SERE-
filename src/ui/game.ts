@@ -294,6 +294,7 @@ export function renderGame(container: HTMLElement, engine: GameEngine): void {
         verdict: event.verdict,
         pickupPlayerId: event.pickupPlayerId,
         players: state.players,
+        myId: event.pickupPlayerId, // hotseat: pickup player is whoever holds the phone
         onDismiss: () => engine.confirmPickup(event.pickupPlayerId),
       });
     } else if (event.type === 'error') {

@@ -67,6 +67,7 @@ function startHostRole(): void {
         verdict: event.verdict,
         pickupPlayerId: event.pickupPlayerId,
         players: engine.getState().players,
+        myId: 'host',
         onDismiss: () => {
           if (isHostPickup) engine.confirmPickup('host');
         },
@@ -120,6 +121,7 @@ function startClientRole(roomId: string): void {
           verdict: payload.verdict,
           pickupPlayerId: payload.pickupPlayerId,
           players: latestState.players,
+          myId: client.getMyId() ?? '',
           onDismiss: () => {
             if (isPickup) client.send({ type: 'CONFIRM_PICKUP' });
           },

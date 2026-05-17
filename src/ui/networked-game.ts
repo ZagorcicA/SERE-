@@ -105,7 +105,9 @@ export function renderNetworkedGame(
     const newGameBtn = document.createElement('button');
     newGameBtn.className = 'btn-new-game';
     newGameBtn.textContent = 'Nova igra';
-    newGameBtn.addEventListener('click', () => location.reload());
+    newGameBtn.addEventListener('click', () => {
+      window.location.href = window.location.origin + window.location.pathname;
+    });
     win.appendChild(newGameBtn);
 
     container.appendChild(win);
@@ -192,7 +194,7 @@ export function renderNetworkedGame(
   pileArea.className = 'pile-area';
 
   const totalPile = round?.totalPileCount ?? 0;
-  const pileWord = totalPile === 1 ? 'karta' : totalPile < 5 ? 'karte' : 'karata';
+  const pileWord = totalPile === 1 ? 'karta' : totalPile >= 2 && totalPile <= 4 ? 'karte' : 'karata';
 
   pileArea.innerHTML = `
     <div class="pile-icon">🂠</div>

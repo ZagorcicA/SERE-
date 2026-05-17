@@ -191,7 +191,7 @@ export function renderHostLobby(
       const item = document.createElement('li');
       item.className = 'player-item';
       const nameSpan = document.createElement('span');
-      nameSpan.textContent = player.id === 'host' ? `${player.name} (domaćin)` : player.name;
+      nameSpan.textContent = player.name;
       item.appendChild(nameSpan);
       list.appendChild(item);
     }

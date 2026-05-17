@@ -503,6 +503,13 @@
   pointer-events: none;
 }
 
+.reveal-waiting-text {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
 /* ── Toast notification ─────────────────────────────────────────────────────── */
 
 .toast {
